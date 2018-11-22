@@ -1,0 +1,292 @@
+\documentclass{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[OT4,plmath]{polski}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{epstopdf}
+\usepackage{float}
+
+\title{\LARGE\textbf{Pracownia z analizy numerycznej}\\ Sprawozdanie do zadania \Large\textbf{P1.15}}
+\author{Marcin Rogala}
+\date{Wrocław, \today}
+
+\newtheorem{de}{Definicja}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty} 
+
+\section{Wstęp}
+Zastosowania \textit{funkcji Bessela} obejmują między innymi mechanikę, elektrodynamikę oraz fizykę ciała stałego. Dlatego wyliczanie ich wartości jest ważnym zadaniem.
+Ciąg \textit{funkcji Bessela $J_n$} definiujemy wzorem
+\begin{align}
+J_n(x) := \frac{1}{\pi}\! \quad\int_{0}^{\pi} \cos(x\sin t - nt)\,\mathrm{d}t \tag*{(n = 0, 1,..).}
+\end{align} 
+Wiemy, że zachodzi własność
+\begin{align} 
+J_{n+ 1}(x) = \frac{2n}{x}J_n(x) - J_{n - 1}(x) \tag*{(n = 1, 2,..).}
+\end{align}
+Powyższa zależność znaczenie ułatwia wyznaczanie wartości \textit{funkcji Bessela} dla naturalnych parametrów $n$. W poniższym sprawozdaniu przeanalizowane zostaną dwie metody wyliczania wartości \textit{funkcji Bessela}:
+\begin{itemize}
+\item rekurencja do przodu, korzystająca wprost z powyższej zależności
+\item algorytm J.C.P Millera
+\end{itemize}
+Omówione zostaną też wyniki przeprowadzonego doświadczenia przybliżania wartości \textit{funkcji Bessela} przy pomocy obu algorytmów. Obliczenia wykonane zostały z pojedynczą precyzją, a następnie z precyzją 256 bitową. 
+
+\section{Wyliczanie funkcji Bessela - rekurencja w przód}
+Korzystając z zależności rekurencyjnej
+\begin{align} 
+J_{n+ 1}(x) = \frac{2n}{x}J_n(x) - J_{n - 1}(x) \tag*{(n = 1, 2,..).}
+\end{align}
+oraz znając
+\begin{align*} 
+J_0(1) \approx 0.7651976866\\
+J_1(1) \approx 0.4400505857
+\end{align*}
+można w łatwy sposób podjąć próbę wyliczenia wartości $J_n(1)$ dla $n > 1$.
+
+\subsection{Częściowe wyniki obliczeń}
+
+
+\begin{center}
+\begin{table}[H]
+\centering
+\caption{Część wyników obliczonych sposobem rekurencji w przód, typ Float32.}
+\begin{tabular}{||c||c|c|c||} \hline
+\textbf{$n$} & \textbf{Wartość przybliżona} & \textbf{Wartość obliczona} & \textbf{Błąd bezwzględny} \\ \hline
+0 &  0.7651976866 &  0.7651976866 &  0.0 \\
+\hline
+1 &  0.4400505857 &  0.4400505857 &  0.0 \\
+\hline
+2 &  0.1149034849319 &  0.11490345001220703 &  3.0390455947643653e-7 \\
+\hline
+3 &  0.019563353982668405 &  0.019563227891921997 &  6.445252001176373e-6 \\
+\hline
+4 &  0.002476638964109 &  0.002475917339324951 &  0.00029137262011392817 \\
+\hline
+5 &  0.000249757730211234 &  0.0002441108226776123 &  0.022609540568957767 \\
+\hline
+15 &  7.1863965868074928286e-19 &  -2.0073776e7 &  2.7933020057438322e25 \\
+\hline
+16 &  2.11537556805326134e-20 &  -6.0149536e8 &  2.843444772095692e28 \\
+\hline
+17 &  5.880344573595758340e-22 &  -1.9227777024e10 &  3.269838490475134e31 \\
+\hline
+18 &  1.5484784412116534205e-23 &  -6.5314291712e11 &  4.217965841416098e34 \\
+\hline
+19 &  3.8735030085246577189147e-25 &  -2.3493915705344e13 &  6.0652891332831e37 \\
+\hline
+20 &  9.227621982096670229e-27 &  -8.92115643006976e14 &  2.3031236610469696e39 \\
+\hline
+\end{tabular}
+\end{table}
+\end{center}
+
+Z powyższej tabeli łatwo wywnioskować, że wraz z rosnącym $n$ błąd wyliczonej wartości bardzo szybko rośnie. Pomyłka jest tak znacząca, że już po kilku iteracjach otrzymana wartość nie ma nic wspólnego z oczekiwanym wynikiem.
+
+\subsection{Źródło błędu obliczeń}
+
+\begin{de}
+Niech $f(x)$ i $g(x)$ będą funkcjami o wartościach rzeczywistych i 
+\begin{equation}
+\lim_{x \to \infty} \frac{f(x)}{g(x)} < \infty
+\end{equation}
+Mówimy wtedy, że $g$ dominuje $f$ lub $f$ jest dominowana przez $g$.
+\end{de}
+
+\begin{de}
+Rozwiązanie zależności rekurencyjnej nazywamy \textit{minimalnym}, gdy jest zdominowane przez dowolne inne rozwiązanie tej samej zależności dla prawie wszystkich argumentów.
+\end{de}
+
+\begin{de}
+Rozwiązanie zależności rekurencyjnej nazywamy \textit{dominującym}, jeśli dominuje ono wszystkie inne rozwiązania tej zależności dla prawie wszystkich argumentów.
+\end{de}
+Dwoma znanymi rozwiązaniami zależności 
+\begin{align} 
+J_{n+ 1}(x) = \frac{2n}{x}J_n(x) - J_{n - 1}(x) \tag*{(n = 1, 2,..).}
+\end{align}
+są $J_n(x)$ oraz $Y_n(x)$ będące odpowiednio \textit{funkcjami Bessela} pierwszego i drugiego rodzaju. $J_n(x)$ jest rozwiązaniem \textit{minimalnym} co oznacza, że od pewnego $n$ wartość wyliczonego $J_{n + 1}(x)$ jest bardzo blisko $Y_n(x)$, a $J_n(x)$ staje się niezauważalne (zdominowane przez $Y_n(x)$). Wiemy, że
+\begin{equation}
+\lim_{n \to \infty} J_n(1) = 0
+\end{equation}
+oraz
+\begin{equation}
+\lim_{n \to \infty} Y_n(1) = -\infty.
+\end{equation}
+więc
+\begin{equation}
+\lim_{n \to \infty}|\frac{\widetilde{J_n(1)} - J_n(1)}{J_n(1)}| = \infty
+\end{equation}
+gdzie $\widetilde{J_n(1)}$ to wyliczone przybliżenie $J_n(1)$.
+
+\section{Algorytm Millera}
+
+\subsection{Opis algorytmu}
+W rozwiązaniu problemu wyliczania \textit{minimalnego} rozwiązania zależności rekurencyjnej pomaga algorytm zaproponowany przez J.C.P Millera. Algorytm opiera się na obliczaniu kolejnych wartości $J_n(x)$ od końca, a nie jak w poprzednim przypadku od $0$. Minimalne rozwiązanie $J_n(x)$ staje się wtedy dominujące. Oczywistym faktem jest to, że nie znamy początkowych wartości $J_n$ aby móc wyliczyć z nich kolejne przybliżenia. Okazuje się jednak, że wystarczy wybrać dowolne wartości a następnie po wykonaniu obliczeń przeskalować wyniki. Więcej o metodzie Millera można przeczytać m.in w \cite{GA}.
+
+\subsection{Schemat algorytmu}
+\begin{itemize}
+\item Wybrać $N > 20$ i określić pomocnicze wartości
+\begin{align*}
+c_{n + 1}^{(N)} = 0.0 \\
+c_{n}^{(N)} = 1.0\\
+c_{k - 1}^{(N)} = \frac{2k}{x} c_{k}^{{N}} - c_{k + 1}^{{N}}  \tag*{(k = N, N - 1,.., 1).}
+\end{align*}
+\item Następnie obliczyć stałą
+\begin{align*}
+\lambda := J_0(x) / c_{0}^{(N)}
+\end{align*}
+oraz przeskalować wyliczone wartości $c_{k}^{(N)}$.
+\begin{align*}
+j_{k}^{(N)} = \lambda c_{k}^{(N)}
+\end{align*}
+\item Wtedy $j_{k}^{(N)} \approx J_k(x)$ dla $(k = 0, 1, ..., N)$.
+\end{itemize}
+
+\subsection{Częściowe wyniki obliczeń metodą Millera}
+
+\begin{center}
+\begin{table}[H]
+\centering
+\caption{Część obliczeń algorytmem Millera dla $N = 25$, typ Float32.}
+\begin{tabular}{||c||c|c|c||} \hline
+\label{tab:2}
+\textbf{$n$} & \textbf{Wartość przybliżona} & \textbf{Wartość obliczona} & \textbf{Błąd bezwzględny} \\ \hline
+0 &  0.7651976866 &  0.7651976866 &  0.0 \\
+\hline
+1 &  0.4400505857 &  0.4400505982355161 &  2.8486534349641307e-8 \\
+\hline
+2 &  0.1149034849319 &  0.11490349147389585 &  5.693470351832169e-8 \\
+\hline
+3 &  0.019563353982668405 &  0.01956335616185704 &  1.1139136147253551e-7 \\
+\hline
+4 &  0.002476638964109 &  0.0024766391732307554 &  8.443772327460019e-8 \\
+\hline
+5 &  0.000249757730211234 &  0.0002497577450016566 &  5.921907827801868e-8 \\
+\hline
+20 &  3.8735030085246577189147e-25 &  3.8735031986789687e-25 &  4.9091045156014705e-8 \\
+\hline
+21 &  9.227621982096670229e-27 &  9.22762216319746e-27 &  1.9625943690207422e-8 \\
+\hline
+22 &  2.0982239559437773488e-28 &  2.098223997123327e-28 &  1.962590780471673e-8 \\
+\hline
+23 &  4.563424055950105648e-30 &  4.56342414517956e-30 &  1.9553180543027622e-8 \\
+\hline
+24 &  9.5110979327124938e-32 &  9.511096592704376e-32 &  1.4088889914377573e-7 \\
+\hline
+25 &  1.902951751891382e-33 &  9.1.9022193185408752e-33 &  0.00038489328475031266 \\
+\hline
+\end{tabular}
+\end{table}
+\end{center}
+
+\begin{center}
+\begin{table}[H]
+\centering
+\caption{Część obliczeń algorytmem Millera dla $N = 30$, typ Float64.}
+\begin{tabular}{||c||c|c|c||} \hline
+\label{tab:2}
+\textbf{$n$} & \textbf{Wartość przybliżona} & \textbf{Wartość obliczona} & \textbf{Błąd bezwzględny} \\ \hline
+0 &  0.7651976866 &  0.7651976866 &  0.0 \\
+\hline
+1 &  0.4400505857 &  0.44005058576910616 &  1.5704141178399132e-10 \\
+\hline
+2 &  0.1149034849319 &  0.1149034849382123 &  5.493565238980972e-11 \\
+\hline
+3 &  0.019563353982668405 &  0.019563353983743047 &  5.493147274669376e-11 \\
+\hline
+28 &  1.211364502417112392e-38 &  1.2113645024547946e-38 &  3.11073406613847e-11 \\
+\hline
+29 &  2.089159981718168173218e-40 &  2.0891598202727125e-40 &  7.727768907050898e-8 \\
+\hline
+30 &  3.4828697942514829e-42 &  3.4819330337878546e-42 &  0.0002689622406139385 \\
+\hline
+\end{tabular}
+\end{table}
+\end{center}
+
+Dla $N = 30$ wszystkie otrzymane wyniki wynoszą \textit{NaN}, jeśli zastosujemy pojedynczą precyzje.
+
+\begin{center}
+\begin{table}[H]
+\centering
+\caption{Część obliczeń algorytmem Millera dla $N = 25$, typ Float32, z zastosowanymi innymi wartościami początkowymi}
+\begin{tabular}{||c||c|c|c||} \hline
+\label{tab:2}
+\textbf{$n$} & \textbf{Wartość przybliżona} & \textbf{Wartość obliczona} & \textbf{Błąd bezwzględny} \\ \hline
+0 &  0.7651976866 &  0.7651976866 &  0.0 \\
+\hline
+1 &  0.4400505857 &  0.44005057203004627 &  3.106450523817067e-8 \\
+\hline
+2 &  0.1149034849319 &  0.1149034848101227 &  1.0598224819047203e-9 \\
+\hline
+3 &  0.019563353982668405 &  0.019563353535429463 &  2.2861056479513607e-8 \\
+\hline
+23 &  4.563424055950105648e-30 &  4.563425178332598e-30 &  2.459518289142531e-7 \\
+\hline
+24 &  9.5110979327124938e-32 &  9.511260039953354e-32 &  1.7044009220316945e-5 \\
+\hline
+25 &  1.902951751891382e-33 &  1.9795487901013617e-33 &  0.04025169746623808\\
+\hline
+\end{tabular}
+\end{table}
+\end{center}
+
+\subsection{Analiza wyników}
+Błąd obliczeń przedstawionych w powyższej tabeli oscyluje w okolicach $10^{-7}$. Jest to spowodowane dokładnością zastosowanych przybliżeń wartości funkcji. W rzeczywistości Algorytm Millera może otrzymać wyniki z jeszcze większa dokładnością. Wykonując obliczenia metodą Millera dla $n = 30$ należy zastosować precyzję co najmniej $64$ bitową. Jest to spowodowane tym, że nieprzeskalowane wartości wyliczane podczas obliczeń bardzo szybko rosną. Zastosowanie pojedynczej precyzji spowoduje, że wartości zmiennopozycyjne zaczną osiągać nieskończoność dla \textit{Float32}, co spowoduje utracenie wszystkich obliczeń podczas skalowania odpowiedzi. W Tabeli $4$ przestawione zostały częściowe wyniki obliczeń algorytmem Millera dla zmienionych wartości początkowych. Otrzymane wyniki mają podobną dokładność do tych w Tabeli $2$. Potwierdza to, że wybór wartości początkowych nie ma znaczenia.
+
+\begin{center}
+\begin{table}[H]
+\centering
+\caption{Wybrane wartości $c_{k}^{(N)}$ wyliczone algorytmem Millera dla $N = 30$}
+\begin{tabular}{||c||c||} \hline
+\label{tab:2}
+\textbf{$k$} & \textbf{$c_{k}^{(N)}$}  \\ \hline
+29 &  60.0 \\
+\hline
+27 &  194764.0 \\
+\hline
+6 &  6.013423106980771e36 \\
+\hline
+4 &  Inf \\
+\hline
+0 &  NaN \\
+\hline
+\end{tabular}
+\end{table}
+\end{center}
+
+\section{Obliczenia dla podwyższonej precyzji}
+Wykonując obliczenia metodą rekurencji w przód dla precyzji $256$ bitowej łatwo zaobserwować, że wyniki poprawiają się nieznacznie. Tak jak dla pojedynczej precyzji już $J_7(x)$ jest bardzo daleko od oczekiwanej wartości. Błąd rośnie w podobnym tempie. Jest to spowodowane tym, że błąd przybliżenia nie wynika z niedokładności obliczeń zmiennoprzecinkowych. Algorytm wylicza rozwiązanie dominujące zależności rekurencyjnej które jest równe $Y_n(x)$. Zjawisko zostało opisane w $2.2$.
+\section{Wnioski}
+\subsection{Rekurencja w przód}
+Algorytm wyliczania przybliżeń \textit{funkcji Bessela} korzystający wprost z zależności rekurencyjnej
+\begin{align*}
+J_{n+ 1}(x) = \frac{2n}{x}J_n(x) - J_{n - 1}(x) \tag*{(n = 1, 2,..).}
+\end{align*}
+charakteryzuje się bardzo małą skutecznością. Jesteśmy w stanie przy jego użyciu wyliczyć zaledwie kilka pierwszych wartości, niezależnie od użytej precyzji. Zaletą tego sposobu jest jego czytelność oraz bardzo łatwa implementacja.
+\subsection{Algorytm Millera}
+Największą zaletą algorytmu Millera jest jego duża skuteczność. Korzystając z tej metody jesteśmy w stanie obliczyć z bardzo dużą dokładnością zdecydowanie więcej wyrazów, niż poprzednią metodą. Niestety jesteśmy ograniczeni przez dostępne typy danych, ponieważ wyliczane w algorytmie wartości przed przeskalowaniem osiągają bardzo duże wartości.
+
+\begin{thebibliography}{99}
+\bibitem{GA} WALTER GAUTSCHI:
+\emph{COMPUTATIONAL ASPECTS OF THREE-TERM RECURRENCE
+RELATIONS},
+Vol. 9, No. 1, January, 1967
+
+\bibitem{CA} J. R. CASH:
+\emph{Stability Concepts in the
+Numerical Solution of
+Difference and Differential Equations},
+Computers Math. Applic. Vol. 28, No. 1-3, pp. 45-53, 1994
+
+\bibitem{WI} Jet Wimp:
+\emph{Computation with Recurrence Relations },
+1984
+\end{thebibliography}
+
+\end{document}
+ 
